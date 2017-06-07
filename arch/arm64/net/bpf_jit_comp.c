@@ -710,10 +710,10 @@ emit_cond_jmp:
 		emit(A64_PRFM(tmp, PST, L1, STRM), ctx);
 		emit(A64_LDXR(isdw, tmp2, tmp), ctx);
 		emit(A64_ADD(isdw, tmp2, tmp2, src), ctx);
-		emit(A64_STXR(isdw, tmp2, tmp, tmp2), ctx);
+		emit(A64_STXR(isdw, tmp2, tmp, tmp3), ctx);
 		jmp_offset = -3;
 		check_imm19(jmp_offset);
-		emit(A64_CBNZ(0, tmp2, jmp_offset), ctx);
+		emit(A64_CBNZ(0, tmp3, jmp_offset), ctx);
 		break;
 
 	/* R0 = ntohx(*(size *)(((struct sk_buff *)R6)->data + imm)) */
