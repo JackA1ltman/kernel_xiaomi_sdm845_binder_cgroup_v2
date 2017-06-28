@@ -67,7 +67,7 @@ struct jit_ctx {
 	int idx;
 	int epilogue_offset;
 	int *offset;
-	u32 *image;
+	__le32 *image;
 	u32 stack_size;
 };
 
