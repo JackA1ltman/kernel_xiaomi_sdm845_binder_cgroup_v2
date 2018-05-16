@@ -312,6 +312,23 @@ int bpf_prog_calc_tag(struct bpf_prog *fp)
 	return 0;
 }
 
+static int bpf_adj_delta_to_imm(struct bpf_insn *insn, u32 pos, u32 delta,
+				u32 curr, const bool probe_pass)
+{
+	const s64 imm_min = S32_MIN, imm_max = S32_MAX;
+	s64 imm = insn->imm;
+
+	if (curr < pos && curr + imm + 1 > pos)
+		imm += delta;
+	else if (curr > pos + delta && curr + imm + 1 <= pos + delta)
+		imm -= delta;
+	if (imm < imm_min || imm > imm_max)
+		return -ERANGE;
+	if (!probe_pass)
+		insn->imm = imm;
+	return 0;
+}
+
 static int bpf_adj_delta_to_off(struct bpf_insn *insn, u32 pos, u32 delta,
 				u32 curr, const bool probe_pass)
 {
@@ -329,41 +346,43 @@ static int bpf_adj_delta_to_off(struct bpf_insn *insn, u32 pos, u32 delta,
 	return 0;
 }
 
-static void bpf_adj_branches(struct bpf_prog *prog, u32 pos, u32 delta)
+static int bpf_adj_branches(struct bpf_prog *prog, u32 pos, u32 delta,
+			    const bool probe_pass)
 {
+	u32 i, insn_cnt = prog->len + (probe_pass ? delta : 0);
 	struct bpf_insn *insn = prog->insnsi;
-	u32 i, insn_cnt = prog->len;
-	bool pseudo_call;
-	u8 code;
-	int off;
+	int ret = 0;
 
 	for (i = 0; i < insn_cnt; i++, insn++) {
-		code = insn->code;
-		if (BPF_CLASS(code) != BPF_JMP)
-			continue;
-		if (BPF_OP(code) == BPF_EXIT)
-			continue;
-		if (BPF_OP(code) == BPF_CALL) {
-			if (insn->src_reg == BPF_PSEUDO_CALL)
-				pseudo_call = true;
-			else
-				continue;
-		} else {
-			pseudo_call = false;
+		u8 code;
+
+		/* In the probing pass we still operate on the original,
+		 * unpatched image in order to check overflows before we
+		 * do any other adjustments. Therefore skip the patchlet.
+		 */
+		if (probe_pass && i == pos) {
+			i += delta + 1;
+			insn++;
 		}
-		off = pseudo_call ? insn->imm : insn->off;
-
-		/* Adjust offset of jmps if we cross boundaries. */
-		if (i < pos && i + off + 1 > pos)
-			off += delta;
-		else if (i > pos + delta && i + off + 1 <= pos + delta)
-			off -= delta;
-
-		if (pseudo_call)
-			insn->imm = off;
-		else
-			insn->off = off;
+		code = insn->code;
+		if (BPF_CLASS(code) != BPF_JMP ||
+		    BPF_OP(code) == BPF_EXIT)
+			continue;
+		/* Adjust offset of jmps if we cross patch boundaries. */
+		if (BPF_OP(code) == BPF_CALL) {
+			if (insn->src_reg != BPF_PSEUDO_CALL)
+				continue;
+			ret = bpf_adj_delta_to_imm(insn, pos, delta, i,
+						   probe_pass);
+		} else {
+			ret = bpf_adj_delta_to_off(insn, pos, delta, i,
+						   probe_pass);
+		}
+		if (ret)
+			break;
 	}
+
+	return ret;
 }
 
 static void bpf_adj_linfo(struct bpf_prog *prog, u32 off, u32 delta)
