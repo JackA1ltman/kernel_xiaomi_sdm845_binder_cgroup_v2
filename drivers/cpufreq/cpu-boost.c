@@ -39,7 +39,7 @@ static bool input_boost_enabled;
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
 
-static unsigned int sched_boost_on_input;
+static unsigned int sched_boost_on_input = 1;
 module_param(sched_boost_on_input, uint, 0644);
 
 static bool sched_boost_active;
