@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-#include <linux/compiler_types.h>
+#include <linux/compiler.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/fsnotify.h>
@@ -34,6 +34,9 @@
 #include <uapi/linux/android/binderfs.h>
 
 #include "binder_internal.h"
+
+#define ida_alloc_max(a, b, c) ida_simple_get(a, 0, b + 1, c)
+#define ida_free ida_remove
 
 #define FIRST_INODE 1
 #define SECOND_INODE 2
@@ -669,16 +672,16 @@ static int binderfs_fill_super(struct super_block *sb, struct fs_context *fc)
 
 	/*
 	 * The binderfs filesystem can be mounted by userns root in a
-	 * non-initial userns. By default such mounts have the SB_I_NODEV flag
+	 * non-initial userns. By default such mounts have the MS_NODEV flag
 	 * set in s_iflags to prevent security issues where userns root can
 	 * just create random device nodes via mknod() since it owns the
 	 * filesystem mount. But binderfs does not allow to create any files
 	 * including devices nodes. The only way to create binder devices nodes
 	 * is through the binder-control device which userns root is explicitly
-	 * allowed to do. So removing the SB_I_NODEV flag from s_iflags is both
+	 * allowed to do. So removing the MS_NODEV flag from s_iflags is both
 	 * necessary and safe.
 	 */
-	sb->s_iflags &= ~SB_I_NODEV;
+	sb->s_iflags &= ~MS_NODEV;
 	sb->s_iflags |= SB_I_NOEXEC;
 	sb->s_magic = BINDERFS_SUPER_MAGIC;
 	sb->s_op = &binderfs_super_ops;
