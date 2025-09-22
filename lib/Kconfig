@@ -2,6 +2,8 @@
 # Library configuration
 #
 
+source "lib/lz4k_oplus/Kconfig"
+
 config BINARY_PRINTF
 	def_bool n
 
@@ -237,6 +239,18 @@ config LZ4_COMPRESS
 
 config LZ4_DECOMPRESS
 	tristate
+
+config LZ4K_COMPRESS
+	tristate
+
+config LZ4K_DECOMPRESS
+	tristate
+
+config LZ4KD_COMPRESS
+	tristate
+
+config LZ4KD_DECOMPRESS
+ 	tristate
 
 config ZSTD_COMPRESS
 	select XXHASH
