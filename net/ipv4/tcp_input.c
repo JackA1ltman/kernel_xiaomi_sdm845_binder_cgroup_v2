@@ -259,6 +259,7 @@ static void __tcp_ecn_check_ce(struct sock *sk, const struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
+	skb_mstamp_get(&tp->tcp_mstamp);
 	switch (TCP_SKB_CB(skb)->ip_dsfield & INET_ECN_MASK) {
 	case INET_ECN_NOT_ECT:
 		/* Funny extension: if ECT is not set on a segment,
@@ -3993,6 +3994,7 @@ static bool tcp_fast_parse_options(const struct sk_buff *skb,
 	 */
 	if (th->doff == (sizeof(*th) / 4)) {
 		tp->rx_opt.saw_tstamp = 0;
+		skb_mstamp_get(&tp->tcp_mstamp);
 		return false;
 	} else if (tp->rx_opt.tstamp_ok &&
 		   th->doff == ((sizeof(*th) + TCPOLEN_TSTAMP_ALIGNED) / 4)) {
@@ -5517,6 +5519,7 @@ void tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 	 *	We do checksum and copy also but from device to kernel.
 	 */
 
+	skb_mstamp_get(&tp->tcp_mstamp);
 	tp->rx_opt.saw_tstamp = 0;
 
 	/*	pred_flags is 0xS?10 << 16 + snd_wnd
