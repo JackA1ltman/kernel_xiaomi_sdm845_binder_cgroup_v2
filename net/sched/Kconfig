@@ -274,16 +274,14 @@ config NET_SCH_FQ_CODEL
 	  If unsure, say N.
 
 config NET_SCH_FQ
-	tristate "Fair Queue"
+	bool "Fair Queue"
+	default y
 	help
 	  Say Y here if you want to use the FQ packet scheduling algorithm.
 
 	  FQ does flow separation, and is able to respect pacing requirements
 	  set by TCP stack into sk->sk_pacing_rate (for localy generated
 	  traffic)
-
-	  To compile this driver as a module, choose M here: the module
-	  will be called sch_fq.
 
 	  If unsure, say N.
 
@@ -367,7 +365,7 @@ if NET_SCH_DEFAULT
 
 choice
 	prompt "Default queuing discipline"
-	default DEFAULT_PFIFO_FAST
+	default DEFAULT_FQ
 	help
 	  Select the queueing discipline that will be used by default
 	  for all network devices.
