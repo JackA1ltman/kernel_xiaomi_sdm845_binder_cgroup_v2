@@ -80,7 +80,7 @@ static long ntfs_compat_ioctl(struct file *filp, u32 cmd, unsigned long arg)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 int ntfs_getattr(struct user_namespace *mnt_userns, const struct path *path,
 		 struct kstat *stat, u32 request_mask, u32 flags)
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 int ntfs_getattr(const struct path *path, struct kstat *stat,
 		 u32 request_mask, u32 flags)
 #else
@@ -88,9 +88,8 @@ int ntfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
 		 struct kstat *stat)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	struct inode *inode = d_inode(path->dentry);
-	struct ntfs_inode *ni = ntfs_i(inode);
 #else
 	struct inode *inode = d_inode(dentry);
 #endif

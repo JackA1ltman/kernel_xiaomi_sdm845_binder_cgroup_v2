@@ -456,7 +456,7 @@ extern const struct file_operations ntfs_dir_operations;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 int ntfs_getattr(struct user_namespace *mnt_userns, const struct path *path,
 		 struct kstat *stat, u32 request_mask, u32 flags);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 int ntfs_getattr(const struct path *path, struct kstat *stat,
 		 u32 request_mask, u32 flags);
 #else
@@ -914,6 +914,12 @@ static inline void run_free(struct runs_tree *run)
 static inline bool run_is_empty(struct runs_tree *run)
 {
 	return !run->count;
+}
+
+/* NTFS uses quad aligned bitmaps */
+static inline size_t bitmap_size(size_t bits)
+{
+	return QuadAlign((bits + 7) >> 3);
 }
 
 #define _100ns2seconds 10000000
