@@ -24,6 +24,10 @@
 #include "decompress_common.h"
 #include "lib.h"
 
+#ifndef fallthrough
+#define fallthrough attribute((fallthrough))
+#endif
+
 /* Number of literal byte values  */
 #define LZX_NUM_CHARS			256
 
