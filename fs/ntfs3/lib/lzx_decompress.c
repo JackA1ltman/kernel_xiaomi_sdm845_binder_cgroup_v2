@@ -406,7 +406,7 @@ static int lzx_read_block_header(struct lzx_decompressor *d,
 		/* Fall though, since the rest of the header for aligned offset
 		 * blocks is the same as that for verbatim blocks.
 		 */
-		fallthrough;
+		__attribute__ ((fallthrough));
 
 	case LZX_BLOCKTYPE_VERBATIM:
 
