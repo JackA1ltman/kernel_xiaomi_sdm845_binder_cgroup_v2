@@ -438,6 +438,7 @@ struct bpf_prog *bpf_patch_insn_single(struct bpf_prog *prog, u32 off,
 {
 	u32 insn_adj_cnt, insn_rest, insn_delta = len - 1;
 	struct bpf_prog *prog_adj;
+	const u32 cnt_max = S16_MAX;
 	int err;
 
 	/* Since our patchlet doesn't expand the image, we're done. */
