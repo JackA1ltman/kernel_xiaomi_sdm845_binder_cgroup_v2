@@ -592,6 +592,11 @@ static inline bool cgroup_is_populated(struct cgroup *cgrp)
 	return cgrp->populated_cnt;
 }
 
+static inline u64 cgroup_id(struct cgroup *cgrp)
+{
+	return cgrp->kn->id.id;
+}
+
 /* returns ino associated with a cgroup */
 static inline ino_t cgroup_ino(struct cgroup *cgrp)
 {
