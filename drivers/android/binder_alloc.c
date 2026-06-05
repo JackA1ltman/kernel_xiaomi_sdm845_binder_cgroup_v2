@@ -25,6 +25,7 @@
 #include <linux/sizes.h>
 #include "binder_alloc.h"
 #include "binder_trace.h"
+#include <trace/hooks/binder.h>
 
 struct list_lru binder_alloc_lru;
 
@@ -212,7 +213,7 @@ static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
 		mm = alloc->vma_vm_mm;
 
 	if (mm) {
-		down_read;
+		mmap_write_lock(mm);
 		vma = alloc->vma;
 	}
 
@@ -270,7 +271,7 @@ static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
 		trace_binder_alloc_page_end(alloc, index);
 	}
 	if (mm) {
-		up_read;
+		mmap_write_unlock(mm);
 		mmput(mm);
 	}
 	return 0;
@@ -303,7 +304,7 @@ err_page_ptr_cleared:
 	}
 err_no_vma:
 	if (mm) {
-		up_read;
+		mmap_write_unlock(mm);
 		mmput(mm);
 	}
 	return vma ? -ENOMEM : -ESRCH;
@@ -398,15 +399,15 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	size_t size, data_offsets_size;
 	int ret;
 
-	down_read;
+	mmap_read_lock(alloc->vma_vm_mm);
 	if (!binder_alloc_get_vma(alloc)) {
-		up_read;
+		mmap_read_unlock(alloc->vma_vm_mm);
 		binder_alloc_debug(BINDER_DEBUG_USER_ERROR,
 				   "%d: binder_alloc_buf, no vma\n",
 				   alloc->pid);
 		return ERR_PTR(-ESRCH);
 	}
-	up_read;
+	mmap_read_unlock(alloc->vma_vm_mm);
 
 	data_offsets_size = ALIGN(data_size, sizeof(void *)) +
 		ALIGN(offsets_size, sizeof(void *));
@@ -424,6 +425,7 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 				alloc->pid, extra_buffers_size);
 		return ERR_PTR(-EINVAL);
 	}
+	trace_android_vh_binder_alloc_new_buf_locked(size, &alloc->free_async_space, is_async);
 	if (is_async &&
 	    alloc->free_async_space < size + sizeof(struct binder_buffer)) {
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
@@ -934,13 +936,13 @@ void binder_alloc_print_pages(struct seq_file *m,
 	 * read inconsistent state.
 	 */
 
-	down_read;
+	mmap_read_lock(alloc->vma_vm_mm);
 	if (binder_alloc_get_vma(alloc) == NULL) {
-		up_read;
+		mmap_read_unlock(alloc->vma_vm_mm);
 		goto uninitialized;
 	}
 
-	up_read;
+	mmap_read_unlock(alloc->vma_vm_mm);
 	for (i = 0; i < alloc->buffer_size / PAGE_SIZE; i++) {
 		page = &alloc->pages[i];
 		if (!page->page_ptr)
@@ -1026,8 +1028,8 @@ enum lru_status binder_alloc_free_page(struct list_head *item,
 	mm = alloc->vma_vm_mm;
 	if (!mmget_not_zero(mm))
 		goto err_mmget;
-	if (!down_read_trylock)
-		goto err_down_read_mmap_sem_failed;
+	if (!mmap_read_trylock(mm))
+		goto err_mmap_read_lock_failed;
 	vma = binder_alloc_get_vma(alloc);
 
 	list_lru_isolate(lru, item);
@@ -1040,7 +1042,7 @@ enum lru_status binder_alloc_free_page(struct list_head *item,
 
 		trace_binder_unmap_user_end(alloc, index);
 	}
-	up_read;
+	mmap_read_unlock(mm);
 	mmput_async(mm);
 
 	trace_binder_unmap_kernel_start(alloc, index);
@@ -1054,7 +1056,7 @@ enum lru_status binder_alloc_free_page(struct list_head *item,
 	mutex_unlock(&alloc->mutex);
 	return LRU_REMOVED_RETRY;
 
-err_down_read_mmap_sem_failed:
+err_mmap_read_lock_failed:
 	mmput_async(mm);
 err_mmget:
 err_page_already_freed:
